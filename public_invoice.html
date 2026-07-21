@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice — InvoicePilot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1120; --surface:#141B2E; --surface2:#1B2440; --line:#263353;
+    --ink:#F1F5F9; --muted:#8B95AC; --accent:#3B82F6; --green:#22C55E; --amber:#F59E0B; --red:#EF4444;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif; min-height:100vh; display:flex; align-items:flex-start; justify-content:center; padding:30px 16px;}
+  h1,h2,h3{font-family:'Space Grotesk',sans-serif; font-weight:700; margin:0;}
+  .card{background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:32px; width:100%; max-width:560px;}
+  .top-row{display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px;}
+  .badge{font-size:11px; font-weight:700; padding:5px 12px; border-radius:8px; text-transform:uppercase; letter-spacing:.03em;}
+  .badge-draft{background:#2A3450; color:var(--muted);}
+  .badge-sent{background:#1E3A5F; color:#60A5FA;}
+  .badge-paid{background:#123420; color:var(--green);}
+  .badge-overdue{background:#3A1620; color:var(--red);}
+  .muted{color:var(--muted); font-size:13.5px;}
+  .row{display:flex; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--line); font-size:14px;}
+  .row:last-child{border-bottom:none;}
+  .total-row{display:flex; justify-content:space-between; padding-top:16px; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:20px;}
+  .btn{display:inline-block; margin-top:22px; background:var(--accent); color:#fff; text-decoration:none; padding:13px 20px; border-radius:11px; font-weight:700; font-size:14px; text-align:center; width:100%;}
+  .section{margin-top:20px;}
+  .loading{text-align:center; padding:60px 0; color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="loading">Loading invoice...</div>
+</div>
+
+<script>
+const CURRENCY_SYMBOL = {USD:'$', EUR:'€', GBP:'£'};
+function fmtMoney(amount, currency){ return `${CURRENCY_SYMBOL[currency]||''}${Number(amount).toLocaleString('en-US',{minimumFractionDigits:2})}`; }
+const STATUS_LABEL = {draft:'Draft', sent:'Awaiting payment', paid:'Paid', overdue:'Overdue'};
+
+const token = window.location.pathname.split('/').pop();
+
+(async ()=>{
+  try{
+    const res = await fetch('/api/public/invoice/' + token);
+    if(!res.ok){ document.getElementById('card').innerHTML = '<div class="loading">Invoice not found.</div>'; return; }
+    const inv = await res.json();
+    document.getElementById('card').innerHTML = `
+      <div class="top-row">
+        <div>
+          <h2>${inv.business_name || inv.freelancer_name}</h2>
+          <div class="muted" style="margin-top:4px;">Invoice ${inv.invoice_number}</div>
+        </div>
+        <span class="badge badge-${inv.status}">${STATUS_LABEL[inv.status]}</span>
+      </div>
+      <div class="muted">Bill to: <b style="color:var(--ink);">${inv.client_name}</b></div>
+      <div class="muted">Issue date: ${inv.issue_date} · Due: ${inv.due_date || '-'}</div>
+
+      <div class="section">
+        ${inv.items.map(i=>`<div class="row"><span>${i.description} × ${i.quantity}</span><span>${fmtMoney(i.unit_price*i.quantity, inv.currency)}</span></div>`).join('')}
+      </div>
+      <div class="total-row"><span>Total</span><span>${fmtMoney(inv.total, inv.currency)}</span></div>
+      ${inv.notes ? `<div class="muted section">${inv.notes}</div>` : ''}
+      <a class="btn" href="/api/public/invoice/${token}/pdf" target="_blank">Download PDF</a>
+    `;
+  } catch(e){
+    document.getElementById('card').innerHTML = '<div class="loading">Something went wrong.</div>';
+  }
+})();
+</script>
+</body>
+</html>
