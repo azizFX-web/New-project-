@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>InvoicePilot — Invoicing for Freelancers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B1120; --surface:#141B2E; --surface2:#1B2440; --line:#263353;
+    --ink:#F1F5F9; --muted:#8B95AC; --accent:#3B82F6; --accent-glow:#60A5FA;
+    --green:#22C55E; --amber:#F59E0B; --red:#EF4444; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--ink); font-family:'Inter',sans-serif; -webkit-font-smoothing:antialiased;}
+  h1,h2,h3{font-family:'Space Grotesk',sans-serif; font-weight:700; margin:0;}
+  button{cursor:pointer; font-family:'Inter',sans-serif;}
+  input, select, textarea{
+    width:100%; border:1.5px solid var(--line); background:var(--surface2); border-radius:10px;
+    padding:10px 12px; font-family:'Inter',sans-serif; font-size:14px; color:var(--ink);
+  }
+  input:focus, select:focus, textarea:focus{outline:none; border-color:var(--accent);}
+  label{font-size:11px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; display:block; margin-bottom:5px;}
+  .field{margin-bottom:12px;}
+
+  /* ---- Login/Register ---- */
+  #authScreen{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px;}
+  .auth-card{background:var(--surface); border:1px solid var(--line); border-radius:20px; padding:36px 32px; width:100%; max-width:380px;}
+  .logo{display:flex; align-items:center; gap:8px; margin-bottom:26px;}
+  .logo-mark{width:32px; height:32px; border-radius:9px; background:linear-gradient(135deg, var(--accent), #8B5CF6); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px;}
+  .logo-text{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:18px;}
+  .auth-card h2{font-size:22px; margin-bottom:6px;}
+  .auth-sub{color:var(--muted); font-size:13.5px; margin-bottom:22px;}
+  .btn-primary{
+    width:100%; padding:13px; border:none; border-radius:11px; background:var(--accent); color:#fff;
+    font-weight:700; font-size:14.5px; margin-top:6px; transition:background .15s;
+  }
+  .btn-primary:hover{background:var(--accent-glow);}
+  .auth-switch{text-align:center; font-size:13px; color:var(--muted); margin-top:18px;}
+  .auth-switch a{color:var(--accent); font-weight:600; cursor:pointer; text-decoration:none;}
+  .auth-error{color:var(--red); font-size:12.5px; margin-top:10px; display:none;}
+
+  /* ---- App shell ---- */
+  #app{display:none;}
+  .topbar{
+    background:var(--surface); border-bottom:1px solid var(--line); padding:14px 24px;
+    display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:10;
+  }
+  .nav-tabs{display:flex; gap:4px;}
+  .nav-tab{padding:9px 16px; border-radius:9px; border:none; background:transparent; color:var(--muted); font-weight:600; font-size:13.5px;}
+  .nav-tab.active{background:var(--surface2); color:var(--ink);}
+  .top-actions{display:flex; align-items:center; gap:10px;}
+  .logout-btn{background:none; border:1px solid var(--line); color:var(--muted); border-radius:9px; padding:8px 14px; font-size:12.5px; font-weight:600;}
+
+  main{max-width:1000px; margin:0 auto; padding:24px 20px 60px;}
+  .view{display:none;}
+  .view.active{display:block;}
+
+  /* ---- Dashboard ---- */
+  .stats-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:28px;}
+  @media(max-width:700px){.stats-grid{grid-template-columns:1fr 1fr;}}
+  .stat-card{background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:18px;}
+  .stat-label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; font-weight:700;}
+  .stat-value{font-family:'Space Grotesk',sans-serif; font-size:26px; font-weight:700; margin-top:8px;}
+  .stat-value.accent{color:var(--accent-glow);}
+  .stat-value.green{color:var(--green);}
+  .stat-value.red{color:var(--red);}
+
+  .section-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+  .section-head h2{font-size:19px;}
+  .btn-new{background:var(--accent); color:#fff; border:none; border-radius:10px; padding:10px 16px; font-weight:700; font-size:13.5px;}
+
+  .card-table{background:var(--surface); border:1px solid var(--line); border-radius:16px; overflow:hidden;}
+  .row{display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid var(--line);}
+  .row:last-child{border-bottom:none;}
+  .row:hover{background:var(--surface2);}
+  .row .main-col{flex:1; min-width:0;}
+  .row .num{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:14.5px;}
+  .row .sub{font-size:12.5px; color:var(--muted); margin-top:2px;}
+  .row .amount{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:15px; white-space:nowrap;}
+
+  .badge{font-size:11px; font-weight:700; padding:4px 10px; border-radius:7px; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap;}
+  .badge-draft{background:#2A3450; color:var(--muted);}
+  .badge-sent{background:#1E3A5F; color:#60A5FA;}
+  .badge-paid{background:#123420; color:var(--green);}
+  .badge-overdue{background:#3A1620; color:var(--red);}
+
+  .empty{text-align:center; color:var(--muted); font-size:13.5px; padding:50px 20px;}
+
+  /* ---- Modal ---- */
+  .modal-overlay{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:flex-start; justify-content:center; padding:30px 16px; overflow-y:auto; z-index:50;}
+  .modal-overlay.show{display:flex;}
+  .modal{background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:26px; width:100%; max-width:520px;}
+  .modal h3{font-size:18px; margin-bottom:18px;}
+  .modal-close{float:right; background:none; border:none; color:var(--muted); font-size:20px; line-height:1;}
+  .row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+
+  .item-row{display:grid; grid-template-columns:1fr 60px 90px 30px; gap:8px; align-items:center; margin-bottom:8px;}
+  .item-row input{font-size:13px; padding:8px 10px;}
+  .remove-item{background:none; border:none; color:var(--red); font-size:16px;}
+  .add-item-link{color:var(--accent); font-size:13px; font-weight:600; background:none; border:none; padding:0; margin-bottom:14px;}
+  .invoice-total-preview{text-align:right; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:18px; margin:14px 0;}
+
+  .action-menu{position:relative;}
+  .action-menu button{background:none; border:none; color:var(--muted); font-size:18px; padding:4px 8px;}
+  .action-dropdown{
+    position:absolute; right:0; top:30px; background:var(--surface2); border:1px solid var(--line); border-radius:10px;
+    padding:6px; min-width:160px; display:none; z-index:20; box-shadow:0 8px 24px rgba(0,0,0,.4);
+  }
+  .action-dropdown.show{display:block;}
+  .action-dropdown button{
+    width:100%; text-align:left; background:none; border:none; color:var(--ink); padding:9px 10px; border-radius:7px; font-size:13px;
+  }
+  .action-dropdown button:hover{background:var(--surface);}
+  .action-dropdown button.danger{color:var(--red);}
+</style>
+</head>
+<body>
+
+<div id="authScreen">
+  <div class="auth-card">
+    <div class="logo"><div class="logo-mark">IP</div><div class="logo-text">InvoicePilot</div></div>
+
+    <div id="loginForm">
+      <h2>Welcome back</h2>
+      <p class="auth-sub">Log in to manage your invoices</p>
+      <div class="field"><label>Email</label><input type="email" id="li_email" placeholder="you@example.com"></div>
+      <div class="field"><label>Password</label><input type="password" id="li_password" placeholder="••••••••"></div>
+      <button class="btn-primary" id="loginBtn">Log in</button>
+      <div class="auth-error" id="loginError"></div>
+      <div class="auth-switch">No account yet? <a id="showRegister">Sign up</a></div>
+    </div>
+
+    <div id="registerForm" style="display:none;">
+      <h2>Create your account</h2>
+      <p class="auth-sub">Start invoicing clients in minutes</p>
+      <div class="field"><label>Your name</label><input type="text" id="r_name" placeholder="Jane Doe"></div>
+      <div class="field"><label>Business name (optional)</label><input type="text" id="r_business" placeholder="Jane Doe Design Studio"></div>
+      <div class="field"><label>Email</label><input type="email" id="r_email" placeholder="you@example.com"></div>
+      <div class="field"><label>Password</label><input type="password" id="r_password" placeholder="At least 6 characters"></div>
+      <button class="btn-primary" id="registerBtn">Create account</button>
+      <div class="auth-error" id="registerError"></div>
+      <div class="auth-switch">Already have an account? <a id="showLogin">Log in</a></div>
+    </div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="topbar">
+    <div class="nav-tabs">
+      <button class="nav-tab active" data-view="dashboard">Dashboard</button>
+      <button class="nav-tab" data-view="invoices">Invoices</button>
+      <button class="nav-tab" data-view="clients">Clients</button>
+      <button class="nav-tab" data-view="settings">Settings</button>
+    </div>
+    <div class="top-actions">
+      <button class="logout-btn" id="logoutBtn">Log out</button>
+    </div>
+  </div>
+
+  <main>
+    <!-- DASHBOARD -->
+    <div class="view active" id="view-dashboard">
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-label">Outstanding</div><div class="stat-value accent" id="statOutstanding">—</div></div>
+        <div class="stat-card"><div class="stat-label">Paid this month</div><div class="stat-value green" id="statPaid">—</div></div>
+        <div class="stat-card"><div class="stat-label">Overdue</div><div class="stat-value red" id="statOverdue">—</div></div>
+        <div class="stat-card"><div class="stat-label">Total invoices</div><div class="stat-value" id="statTotal">—</div></div>
+      </div>
+      <div class="section-head"><h2>Recent invoices</h2><button class="btn-new" id="newInvoiceBtnDash">+ New invoice</button></div>
+      <div class="card-table" id="recentInvoices"></div>
+    </div>
+
+    <!-- INVOICES -->
+    <div class="view" id="view-invoices">
+      <div class="section-head"><h2>All invoices</h2><button class="btn-new" id="newInvoiceBtn">+ New invoice</button></div>
+      <div class="card-table" id="allInvoices"></div>
+    </div>
+
+    <!-- CLIENTS -->
+    <div class="view" id="view-clients">
+      <div class="section-head"><h2>Clients</h2><button class="btn-new" id="newClientBtn">+ Add client</button></div>
+      <div class="card-table" id="clientsList"></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="view" id="view-settings">
+      <div class="section-head"><h2>Business settings</h2></div>
+      <div class="card-table" style="padding:22px;">
+        <div class="field"><label>Your name</label><input type="text" id="s_name"></div>
+        <div class="field"><label>Business name</label><input type="text" id="s_business"></div>
+        <div class="field"><label>Business address</label><textarea id="s_address" rows="3"></textarea></div>
+        <button class="btn-primary" id="saveSettingsBtn" style="max-width:200px;">Save changes</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- New Client Modal -->
+<div class="modal-overlay" id="clientModalOverlay">
+  <div class="modal">
+    <button class="modal-close" id="closeClientModal">&times;</button>
+    <h3>Add client</h3>
+    <div class="field"><label>Name</label><input type="text" id="c_name" placeholder="John Smith"></div>
+    <div class="field"><label>Email</label><input type="email" id="c_email" placeholder="john@company.com"></div>
+    <div class="field"><label>Company</label><input type="text" id="c_company" placeholder="Acme Inc."></div>
+    <div class="field"><label>Address</label><textarea id="c_address" rows="2"></textarea></div>
+    <button class="btn-primary" id="saveClientBtn">Add client</button>
+  </div>
+</div>
+
+<!-- New Invoice Modal -->
+<div class="modal-overlay" id="invoiceModalOverlay">
+  <div class="modal" style="max-width:600px;">
+    <button class="modal-close" id="closeInvoiceModal">&times;</button>
+    <h3>New invoice</h3>
+    <div class="field"><label>Client</label><select id="inv_client"></select></div>
+    <div class="row2">
+      <div class="field"><label>Issue date</label><input type="date" id="inv_issue"></div>
+      <div class="field"><label>Due date</label><input type="date" id="inv_due"></div>
+    </div>
+    <div class="field"><label>Currency</label>
+      <select id="inv_currency">
+        <option value="USD">USD ($)</option>
+        <option value="EUR">EUR (€)</option>
+        <option value="GBP">GBP (£)</option>
+      </select>
+    </div>
+
+    <label style="margin-top:16px; display:block;">Line items</label>
+    <div id="itemsContainer"></div>
+    <button class="add-item-link" id="addItemBtn">+ Add line item</button>
+    <div class="invoice-total-preview">Total: <span id="invoiceTotalPreview">0.00</span></div>
+
+    <div class="field"><label>Notes (optional)</label><textarea id="inv_notes" rows="2"></textarea></div>
+    <button class="btn-primary" id="saveInvoiceBtn">Create invoice</button>
+  </div>
+</div>
+
+<!-- Invoice Detail Modal -->
+<div class="modal-overlay" id="detailModalOverlay">
+  <div class="modal" style="max-width:560px;">
+    <button class="modal-close" id="closeDetailModal">&times;</button>
+    <div id="invoiceDetailContent"></div>
+  </div>
+</div>
+
+<script>
+const CURRENCY_SYMBOL = {USD:'$', EUR:'€', GBP:'£'};
+function fmtMoney(amount, currency){ return `${CURRENCY_SYMBOL[currency]||''}${Number(amount).toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2})}`; }
+
+async function api(path, opts={}){
+  const res = await fetch(path, {credentials:'include', headers:{'Content-Type':'application/json'}, ...opts});
+  if(res.status === 401){ showAuth(); throw new Error('unauth'); }
+  return res;
+}
+
+/* ---- Auth screen ---- */
+function showAuth(){ document.getElementById('authScreen').style.display='flex'; document.getElementById('app').style.display='none'; }
+function showApp(){ document.getElementById('authScreen').style.display='none'; document.getElementById('app').style.display='block'; loadAll(); }
+
+document.getElementById('showRegister').onclick = ()=>{ document.getElementById('loginForm').style.display='none'; document.getElementById('registerForm').style.display='block'; };
+document.getElementById('showLogin').onclick = ()=>{ document.getElementById('registerForm').style.display='none'; document.getElementById('loginForm').style.display='block'; };
+
+document.getElementById('loginBtn').onclick = async ()=>{
+  const email = document.getElementById('li_email').value, password = document.getElementById('li_password').value;
+  const err = document.getElementById('loginError');
+  try{
+    const res = await fetch('/api/login', {method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email,password})});
+    if(!res.ok){ const d = await res.json(); err.textContent = d.detail; err.style.display='block'; return; }
+    showApp();
+  } catch(e){ err.textContent = 'Something went wrong'; err.style.display='block'; }
+};
+
+document.getElementById('registerBtn').onclick = async ()=>{
+  const body = { name: document.getElementById('r_name').value, business_name: document.getElementById('r_business').value,
+    email: document.getElementById('r_email').value, password: document.getElementById('r_password').value };
+  const err = document.getElementById('registerError');
+  try{
+    const res = await fetch('/api/register', {method:'POST', credentials:'include', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    if(!res.ok){ const d = await res.json(); err.textContent = d.detail; err.style.display='block'; return; }
+    showApp();
+  } catch(e){ err.textContent = 'Something went wrong'; err.style.display='block'; }
+};
+
+document.getElementById('logoutBtn').onclick = async ()=>{
+  await fetch('/api/logout', {method:'POST', credentials:'include'});
+  showAuth();
+};
+
+/* ---- Nav ---- */
+document.querySelectorAll('.nav-tab').forEach(tab=>{
+  tab.onclick = ()=>{
+    document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('view-'+tab.dataset.view).classList.add('active');
+  };
+});
+
+async function loadAll(){
+  await Promise.all([loadStats(), loadInvoices(), loadClients(), loadSettings()]);
+}
+
+/* ---- Stats ---- */
+async function loadStats(){
+  const res = await api('/api/stats');
+  const s = await res.json();
+  document.getElementById('statOutstanding').textContent = fmtMoney(s.outstanding, 'USD');
+  document.getElementById('statPaid').textContent = fmtMoney(s.paid_this_month, 'USD');
+  document.getElementById('statOverdue').textContent = s.overdue_count;
+  document.getElementById('statTotal').textContent = s.total_invoices;
+}
+
+/* ---- Invoices ---- */
+let invoicesCache = [];
+const STATUS_LABEL = {draft:'Draft', sent:'Sent', paid:'Paid', overdue:'Overdue'};
+
+async function loadInvoices(){
+  const res = await api('/api/invoices');
+  invoicesCache = await res.json();
+  renderInvoiceList('recentInvoices', invoicesCache.slice(0,5));
+  renderInvoiceList('allInvoices', invoicesCache);
+}
+
+function renderInvoiceList(elId, list){
+  const el = document.getElementById(elId);
+  if(list.length === 0){ el.innerHTML = '<div class="empty">No invoices yet</div>'; return; }
+  el.innerHTML = list.map(inv => `
+    <div class="row">
+      <div class="main-col" onclick="openInvoiceDetail(${inv.id})" style="cursor:pointer;">
+        <div class="num">${inv.invoice_number}</div>
+        <div class="sub">${inv.client_name} · ${inv.issue_date}</div>
+      </div>
+      <span class="badge badge-${inv.status}">${STATUS_LABEL[inv.status]}</span>
+      <div class="amount">${fmtMoney(inv.total, inv.currency)}</div>
+      <div class="action-menu">
+        <button onclick="toggleActionMenu(event, ${inv.id})">⋮</button>
+        <div class="action-dropdown" id="dropdown-${inv.id}">
+          ${inv.status==='draft' ? `<button onclick="setInvoiceStatus(${inv.id},'sent')">Mark as sent</button>` : ''}
+          ${inv.status!=='paid' ? `<button onclick="setInvoiceStatus(${inv.id},'paid')">Mark as paid</button>` : ''}
+          ${(inv.status==='sent'||inv.status==='overdue') ? `<button onclick="sendReminder(${inv.id})">Send reminder</button>` : ''}
+          <button onclick="downloadPdf(${inv.id})">Download PDF</button>
+          <button class="danger" onclick="deleteInvoice(${inv.id})">Delete</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function toggleActionMenu(e, id){
+  e.stopPropagation();
+  document.querySelectorAll('.action-dropdown').forEach(d=>{ if(d.id !== 'dropdown-'+id) d.classList.remove('show'); });
+  document.getElementById('dropdown-'+id).classList.toggle('show');
+}
+document.addEventListener('click', ()=> document.querySelectorAll('.action-dropdown').forEach(d=>d.classList.remove('show')));
+
+async function setInvoiceStatus(id, status){
+  await api('/api/invoices/'+id, {method:'PATCH', body: JSON.stringify({status})});
+  loadInvoices(); loadStats();
+}
+async function sendReminder(id){
+  await api('/api/invoices/'+id+'/remind', {method:'POST'});
+  alert('Reminder sent!');
+}
+function downloadPdf(id){ window.open('/api/invoices/'+id+'/pdf', '_blank'); }
+async function deleteInvoice(id){
+  if(!confirm('Delete this invoice?')) return;
+  await api('/api/invoices/'+id, {method:'DELETE'});
+  loadInvoices(); loadStats();
+}
+
+async function openInvoiceDetail(id){
+  const res = await api('/api/invoices/'+id);
+  const inv = await res.json();
+  const shareLink = window.location.origin + '/invoice/' + inv.share_token;
+  document.getElementById('invoiceDetailContent').innerHTML = `
+    <h3>${inv.invoice_number}</h3>
+    <p style="color:var(--muted); font-size:13px; margin:6px 0 16px;">${inv.client_name} · ${STATUS_LABEL[inv.status]}</p>
+    <div style="background:var(--surface2); border-radius:12px; padding:14px; margin-bottom:14px;">
+      ${inv.items.map(i=>`<div class="row" style="border:none; padding:6px 0;"><span class="main-col">${i.description} × ${i.quantity}</span><span>${fmtMoney(i.unit_price*i.quantity, inv.currency)}</span></div>`).join('')}
+    </div>
+    <div class="invoice-total-preview">Total: ${fmtMoney(inv.total, inv.currency)}</div>
+    <div class="field"><label>Shareable link (send to client)</label><input type="text" readonly value="${shareLink}" onclick="this.select()"></div>
+    <button class="btn-primary" onclick="downloadPdf(${inv.id})">Download PDF</button>
+  `;
+  document.getElementById('detailModalOverlay').classList.add('show');
+}
+document.getElementById('closeDetailModal').onclick = ()=> document.getElementById('detailModalOverlay').classList.remove('show');
+
+/* ---- Clients ---- */
+let clientsCache = [];
+async function loadClients(){
+  const res = await api('/api/clients');
+  clientsCache = await res.json();
+  const el = document.getElementById('clientsList');
+  el.innerHTML = clientsCache.length ? clientsCache.map(c=>`
+    <div class="row">
+      <div class="main-col">
+        <div class="num">${c.name}</div>
+        <div class="sub">${c.company || ''} ${c.email ? '· '+c.email : ''}</div>
+      </div>
+      <button class="logout-btn" onclick="deleteClient(${c.id})">Remove</button>
+    </div>`).join('') : '<div class="empty">No clients yet</div>';
+
+  const sel = document.getElementById('inv_client');
+  sel.innerHTML = clientsCache.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+}
+
+document.getElementById('newClientBtn').onclick = ()=> document.getElementById('clientModalOverlay').classList.add('show');
+document.getElementById('closeClientModal').onclick = ()=> document.getElementById('clientModalOverlay').classList.remove('show');
+document.getElementById('saveClientBtn').onclick = async ()=>{
+  const body = {
+    name: document.getElementById('c_name').value, email: document.getElementById('c_email').value,
+    company: document.getElementById('c_company').value, address: document.getElementById('c_address').value,
+  };
+  const res = await api('/api/clients', {method:'POST', body: JSON.stringify(body)});
+  if(res.ok){
+    document.getElementById('clientModalOverlay').classList.remove('show');
+    ['c_name','c_email','c_company','c_address'].forEach(id=>document.getElementById(id).value='');
+    loadClients();
+  } else { const d = await res.json(); alert(d.detail); }
+};
+async function deleteClient(id){
+  if(!confirm('Remove this client?')) return;
+  await api('/api/clients/'+id, {method:'DELETE'});
+  loadClients();
+}
+
+/* ---- New Invoice modal ---- */
+function openInvoiceModal(){
+  if(clientsCache.length === 0){ alert('Add a client first'); return; }
+  document.getElementById('itemsContainer').innerHTML = '';
+  addItemRow();
+  document.getElementById('inv_issue').value = new Date().toISOString().slice(0,10);
+  document.getElementById('inv_due').value = new Date(Date.now()+14*86400000).toISOString().slice(0,10);
+  updateInvoiceTotalPreview();
+  document.getElementById('invoiceModalOverlay').classList.add('show');
+}
+document.getElementById('newInvoiceBtn').onclick = openInvoiceModal;
+document.getElementById('newInvoiceBtnDash').onclick = openInvoiceModal;
+document.getElementById('closeInvoiceModal').onclick = ()=> document.getElementById('invoiceModalOverlay').classList.remove('show');
+
+function addItemRow(){
+  const div = document.createElement('div');
+  div.className = 'item-row';
+  div.innerHTML = `
+    <input type="text" placeholder="Description" class="item-desc">
+    <input type="number" placeholder="Qty" value="1" class="item-qty" min="0" step="0.5">
+    <input type="number" placeholder="Price" value="0" class="item-price" min="0" step="0.01">
+    <button class="remove-item" onclick="this.parentElement.remove(); updateInvoiceTotalPreview();">×</button>
+  `;
+  div.querySelectorAll('input').forEach(inp => inp.addEventListener('input', updateInvoiceTotalPreview));
+  document.getElementById('itemsContainer').appendChild(div);
+}
+document.getElementById('addItemBtn').onclick = addItemRow;
+
+function updateInvoiceTotalPreview(){
+  let total = 0;
+  document.querySelectorAll('#itemsContainer .item-row').forEach(row=>{
+    const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
+    const price = parseFloat(row.querySelector('.item-price').value) || 0;
+    total += qty * price;
+  });
+  document.getElementById('invoiceTotalPreview').textContent = total.toLocaleString('en-US',{minimumFractionDigits:2});
+}
+
+document.getElementById('saveInvoiceBtn').onclick = async ()=>{
+  const items = [...document.querySelectorAll('#itemsContainer .item-row')].map(row=>({
+    description: row.querySelector('.item-desc').value,
+    quantity: row.querySelector('.item-qty').value,
+    unit_price: row.querySelector('.item-price').value,
+  })).filter(i=>i.description.trim());
+
+  const body = {
+    client_id: Number(document.getElementById('inv_client').value),
+    currency: document.getElementById('inv_currency').value,
+    issue_date: document.getElementById('inv_issue').value,
+    due_date: document.getElementById('inv_due').value,
+    notes: document.getElementById('inv_notes').value,
+    items,
+  };
+  const res = await api('/api/invoices', {method:'POST', body: JSON.stringify(body)});
+  if(res.ok){
+    document.getElementById('invoiceModalOverlay').classList.remove('show');
+    document.getElementById('inv_notes').value = '';
+    loadInvoices(); loadStats();
+  } else { const d = await res.json(); alert(d.detail); }
+};
+
+/* ---- Settings ---- */
+async function loadSettings(){
+  const res = await api('/api/me');
+  const me = await res.json();
+  document.getElementById('s_name').value = me.name || '';
+  document.getElementById('s_business').value = me.business_name || '';
+  document.getElementById('s_address').value = me.business_address || '';
+}
+document.getElementById('saveSettingsBtn').onclick = async ()=>{
+  const body = { name: document.getElementById('s_name').value, business_name: document.getElementById('s_business').value, business_address: document.getElementById('s_address').value };
+  await api('/api/me', {method:'POST', body: JSON.stringify(body)});
+  alert('Saved!');
+};
+
+/* ---- Boot ---- */
+(async ()=>{
+  try{
+    const res = await fetch('/api/me', {credentials:'include'});
+    if(res.ok){ showApp(); } else { showAuth(); }
+  } catch(e){ showAuth(); }
+})();
+</script>
+</body>
+</html>
